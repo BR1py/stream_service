@@ -47,11 +47,6 @@ pip install stream_service
 The package has no dependencies to other external packages. 
 
 It should work for all python versions >3.5. To get the package working under python 3.4 all the await decorators in the package must be replaced with yield from decorator.
-## Usage
-
-```python
-
-```
 
 ## License
 [MIT](https://choosealicense.com/licenses/mit/)
@@ -86,6 +81,7 @@ At least the package is used in my projects already and I can say the stability 
 The core function of the package can be compared to the popular video streaming platforms in the internet. We have aserver where we can place data into a channel and we have clients that subsribe to the channel and take the data out. The STRM_Server is the one who takes the data from the client and distributes it to the clients who are interested in.
 The picture shows in an overview the server and clients and the general interaction.
 
+![DiagramPrinciplesOfStreamServices](https://github.com/BR1py/stream_service/blob/main/docs/docs/DiagramPrinciplesOfStreamServices.png?raw=true)
 
 To get a better understanding of the data streaming functionality based on channels we will try to describe all steps that must be performed until a data package can be send by a client to the channel and it is received by the targets.
 Let's asum the STRM_server is already running and three STRM_Clients are already connected to the STRM_server.
