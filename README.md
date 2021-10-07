@@ -153,7 +153,7 @@ The code might look like this:
 class MyClient(StreamClient_Thread):
     
     def rpc_my_echo(self,data):
-    return 'MY ECHO',data
+        return 'MY ECHO',data
     
 myrpc_client=MyClient('rpc_client',127.0.0.1) # we run the server on local host
 myrpc_client.start()
