@@ -1,7 +1,7 @@
 # stream_service
 A python package for streaming data from one client to another over a channel on a central stream server
 
-Version 1.0.0 
+Version 0.1.0 
 
 This package is a investigation study regarding the streaming of data from a client to a channel on a distribution server that sends the data to all the clients that have subscribed the channel.
 
@@ -9,34 +9,40 @@ The package builds an extended functionality around the client server functions 
 
 At least in the client/server classes the following features are implemented:
 
-STRM_Server:
+Stream_Server:
 
-* STRM_Server can be started as an independent process (inheritate "from multiprocessing import Process" class)
-* STRM_Server provides channel and client informations
-* STRM_Server provides load statistics
+* Stream_Server can be started as an independent process (inheritate "from multiprocessing import Process" class)
+* Stream_Server provides channel and client informations
+* Stream_Server provides load statistics
 * All functional server requests are handled as RPC calls to the server
 
-STRM_Clients:
+Stream_Clients:
 
-* STRM_Client is realized as a Thread and can be integrated in other applications
-* STRM_Clients can create channels for data sending (channels can be puplic or private and also only temporary)
-* STRM_Clients can subscribe existing channels for reading data
-* STRM_Clients can subscribe existing channels for writing data
+* Stream_Client is realized as a Thread and can be integrated in other applications
+* Stream_Clients can create channels for data sending (channels can be puplic or private and also only temporary)
+* Stream_Clients can subscribe existing channels for reading data
+* Stream_Clients can subscribe existing channels for writing data
 * The data send is internally serialized via marshall or pickle an gzip packing can be enable for huge data frames
 * numpy arrays can be serialized via numpy to_bytes()/from_bytes() method
 * The sending and receiving data is available in normal python style or in modern awaited asyncio calls
-* Different received data queue types are available and can be used directly for data acces (especially reading)
+* Different received data buffers(queue) types are available and can be used directly for data acces (especially reading)
 
 Remote Procedure Calls (RPC):
 
-* STRM_Clients class can be used as a super class for an own STRM_Client that can have extended RPC calls available which can be called from other clients
+* Stream_Clients class can be used as a super class for an own STRM_Client that can have extended RPC calls available which can be called from other clients
 * RPC method calls are done directly on the rpc_client object on the client (as a local method)
 * RPC method parameters are checked on rpc_client side before send to the target client
 * For each RPC call the user can define an individual timeout
+* RPC methods can be encapsulated in RPC subclasses
+
+An important design goal of the package is that we avoid useless network traffic. This means on the server we can define which type of read buffer we want to connect to a channel. The read buffer can be defined in case of buffer size, over run behavior (ring buffer or other types) and also the fill rate can be set in case not any data should be taken out of the channel. By this mechanism the filtering is done on the server before we send the data to the client.
+Second we have implemented a mechanism that triggers the writer clients only to send data in case at least one reader is available. Channels without readers will not request any data from the writer clients.
 
 The package contains some typical examples showing how the client/server functions might be used
 
 ## Installation
+
+The PyPI package is not avalable yet!
 
 Use the package manager [pip](https://pip.pypa.io/en/stable/) to install the stream_server package.
 
@@ -84,11 +90,11 @@ The picture shows in an overview the server and clients and the general interact
 ![DiagramPrinciplesOfStreamServices](https://github.com/BR1py/stream_service/blob/main/docs/docs/DiagramPrinciplesOfStreamServices.png?raw=true)
 
 To get a better understanding of the data streaming functionality based on channels we will try to describe all steps that must be performed until a data package can be send by a client to the channel and it is received by the targets.
-Let's asum the STRM_server is already running and three STRM_Clients are already connected to the STRM_server.
+Let's assume the Stream_Server is already running and three Stream_Clients are already connected to the Stream_Server (see examples stream_data.py).
 
 1. The sending client must create a channel which should be used for the streaming. The client who creates the channel is the ownwer and the channel can only be deleted by the client. Also the channel will be deleted from the server if the related client disconnects (but this might be changed in one of the future versions).
 
-Client1: create_channel("ABC")
+Client1: create_new_channel("ABC")
 
 2. after the channel exists the other clients can subscribe to the channel as readers:
 Client2: subscribe_read_channel("ABC")
@@ -98,7 +104,7 @@ During the subscription the client will also define in which kind of buffer stru
 
 3. Now the client can send a data package by putting it into the channel:
 Client1: put_data("ABC",'MY data') 
-Any data object that can be marshaled or pickled can be transferred into the channel.
+Any data object that can be marshaled or pickled can be transferred into the channel. For numpy arrays (if installed we use the numpy internal translation to bytes to serialize)
 
 4. The data_frame is transfered via asyncio StreamReader to the server and for each client we have a read_from_client() loop running which await the arrival of new data from the StreamReader.
 
@@ -136,7 +142,7 @@ Finally the a channel can be created as a temporary channel. Then a lifetime par
 
 ### RPC features:
 
-The STRM_Client object might be used as a super class of own STRM_Client classes. The new class can be extended by remote procedure calls by adding methods with the pre string "rpc_". Those new methods are identified during the class instanciation. And will be distributed as a RPC service from this client over the STRM_server. 
+The Stream_Client object might be used as a super class of own STRM_Client classes. The new class can be extended by remote procedure calls by adding methods with the pre string "rpc_". Those new methods are identified during the class instanciation. And will be distributed as a RPC service from this client over the Stream_Server (see client_rpc.py in examples folder). 
 
 Another client can connect to the client (over the STRM_server) and ask for a RPC authentication. Then he will receive the rpc service info from the contacted RPC client and a related RPCClient object in the connected client will be created. Via this object the user can easy program functions that will be executed during runtime on the RPC client (remote execution).
 
@@ -144,37 +150,40 @@ The code might look like this:
 
 ```python
 
-class MyClient(STRM_Client):
+class MyClient(StreamClient_Thread):
+    
     def rpc_my_echo(self,data):
     return 'MY ECHO',data
     
-myrpc_client=STRM_Client('rpc_client',127.0.0.1) # we run the server on local host
+myrpc_client=MyClient('rpc_client',127.0.0.1) # we run the server on local host
+myrpc_client.start()
 ```
 
 The connecting client does the following:
 
 ```python
 
-myclient=STRM_Client('myclient',127.0.0.1) # we run the server on local host
+myclient=StreamClient_Thread('myclient',127.0.0.1) # we run the server on local host
+myclient.start()
 
-myclient.rpc_connect('rpc_client','connect_key',local_object='remote_client')
+myrpc=myclient.create_rpc_client_service('rpc_client')
 ```
 
 The execution of the remote call will be done like this:
 
 ```python
-print(myclient.remote_client.my_echo('HALLO'))
+print(myrpc.my_echo('HALLO'))
 > 'MY_ECHO','HALLO'
 ```
 
-The returned tuple is created in the myrpc_client STRM_Client object. If you do not run on localhost this object might exists on another maschine somewhere in the network in a another process. But the coding is as if it is on the local maschine.
+The returned tuple is created in the myrpc_client StreamClient_Thread object. If you do not run on localhost this object might exists on another maschine somewhere in the network in a another process. But the coding is as if it is on the local maschine.
 
 Each RPC call is internally handled by an transaction object which ensures that the target is set correctly and the received return (send via the StreamWriter) can be identified.
 
 The RPC execution is normally protected by a default timeout (STRM_ClientThread parameter), but you can also set individual timeouts for any rpc call by adding a specific parameter to the calling method (default is "tto").
 
 ```python
-print(myclient.remote_client.my_echo('HALLO',tto=10)) # set the timeout for this call to 10 seconds
+print(myrpc.my_echo('HALLO',tto=10)) # set the timeout for this call to 10 seconds
 > 'MY_ECHO','HALLO'
 ```
 
