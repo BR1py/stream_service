@@ -29,7 +29,7 @@ Stream_Clients:
 
 Remote Procedure Calls (RPC):
 
-* Stream_Clients class can be used as a super class for an own STRM_Client that can have extended RPC calls available which can be called from other clients
+* Stream_Clients class can be used as a super class for an own Stream_Client that can have extended RPC calls available which can be called from other clients
 * RPC method calls are done directly on the rpc_client object on the client (as a local method)
 * RPC method parameters are checked on rpc_client side before send to the target client
 * For each RPC call the user can define an individual timeout
