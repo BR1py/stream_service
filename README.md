@@ -42,7 +42,7 @@ The package contains some typical examples showing how the client/server functio
 
 ## Installation
 
-The PyPI package is not avalable yet!
+REMARK: The PyPI package is not avalable yet!
 
 Use the package manager [pip](https://pip.pypa.io/en/stable/) to install the stream_server package.
 
