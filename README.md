@@ -68,15 +68,19 @@ The structure of folder and files related to this package looks like this:
 * stream_framework (main folder)
 
    * __ init __.py
-   * strm_server.py
-   * strm_lib.py
-   * strm_client.py
-
+   * stream_server.py
+   * stream_client.py
+   * lib
+      * buffers.py
+      * frame.py
+      * helpers.py
+      * rpc.py
+   
    * examples
 
       * run_server.py
       * client_rpc.py
-      * client_streams.py
+      * stream_data.py
 
 ## More detailed informations 
 
